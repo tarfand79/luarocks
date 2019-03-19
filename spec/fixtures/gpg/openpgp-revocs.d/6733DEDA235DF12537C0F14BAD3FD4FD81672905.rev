@@ -1,0 +1,32 @@
+This is a revocation certificate for the OpenPGP key:
+
+pub   rsa2048 2019-03-19 [S]
+      6733DEDA235DF12537C0F14BAD3FD4FD81672905
+uid          LuaRocks testsuite fixture (not a real email address) <fixture@luarocks.org>
+
+A revocation certificate is a kind of "kill switch" to publicly
+declare that a key shall not anymore be used.  It is not possible
+to retract such a revocation certificate once it has been published.
+
+Use it to revoke this key in case of a compromise or loss of
+the secret key.  However, if the secret key is still accessible,
+it is better to generate a new revocation certificate and give
+a reason for the revocation.  For details see the description of
+of the gpg command "--generate-revocation" in the GnuPG manual.
+
+To avoid an accidental use of this file, a colon has been inserted
+before the 5 dashes below.  Remove this colon with a text editor
+before importing and publishing this revocation certificate.
+
+:-----BEGIN PGP PUBLIC KEY BLOCK-----
+Comment: This is a revocation certificate
+
+iQE2BCABCAAgFiEEZzPe2iNd8SU3wPFLrT/U/YFnKQUFAlyRDsgCHQAACgkQrT/U
+/YFnKQW/Ygf/ZOoLnrdme9zbkyXIMLAZg0vzqITjbM+kRVDdaRSZQ533LsPrz4Ky
+Dv/NKRPRvnvM30k1gA5LxYl/adgjs/US3490RIpKURw0bgOeiZ2geUzdzb7BPrHL
+wq1cr5M5dveNRj+pqivtS1EEI/dcxoll83FOyq0SP9MKU1VKCczVzUCBUTPkMSY0
+33fVp+S1skw+y8ckUmfFnQ+uLxKR6Cu0hgnrcXvoXJwI7pp6iebHTLmcij/792r7
+XaoQjGx1zMqp/o9ENGj3+PkURIkvs+Ok7yAudCBzMCLon55teXcvP2/hXr4383R9
+XH2sY9SXMURyORzQd+Ky07lHMU0n0w2Vjw==
+=X+7I
+-----END PGP PUBLIC KEY BLOCK-----
