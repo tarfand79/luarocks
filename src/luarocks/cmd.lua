@@ -151,16 +151,44 @@ local function check_popen()
    end
 end
 
-local function find_project_dir()
+local function check_dir(detected, try)
+   if detected.lua_version then
+      if exists(try .. "/.luarocks/config-" .. detected.lua_version .. ".lua") then
+         detected.project_dir = try
+         return detected
+      end
+   else
+      for v in util.lua_versions("descending") do
+         if exists(dir.path(try, ".luarocks", "config-"..v..".lua")) then
+            detected.project_dir = try
+            detected.lua_version = v
+            return detected
+         end
+      end
+   end
+end
+
+local function check_project_dir(detected, project_tree)
+   detected = detected or {
+      project_dir = project_tree
+   }
+   if detected.project_dir then
+      return check_dir(detected, detected.project_dir)
+   end
+
    local try = "."
    for _ = 1, 10 do -- FIXME detect when root dir was hit instead
       if exists(try .. "/.luarocks") and exists(try .. "/lua_modules") then
-         return try
+         local d = check_dir(detected, try)
+         if d then
+            return d
+         end
       elseif exists(try .. "/.luarocks-no-project") then
-         return nil
+         break
       end
       try = try .. "/.."
    end
+   return detected
 end
 
 local process_tree_flags
@@ -259,19 +287,6 @@ local function process_server_flags(flags)
    end
 
    return true
-end
-
-local function find_lua_version_at(dirname)
-   local lua_version
-   for v in util.lua_versions("descending") do
-      if exists(dir.path(dirname, ".luarocks", "config-"..v..".lua")) then
-         lua_version = v
-         break
-      end
-   end
-   return {
-      lua_version = lua_version
-   }
 end
 
 --- Main command-line processor.
@@ -375,49 +390,46 @@ function cmd.run_command(description, commands, external_namespace, ...)
       die("Invalid entry for --deps-mode.")
    end
 
-   local project_dir
+   local project_tree
    if flags["project-tree"] then
-      project_dir = flags["project-tree"]:gsub("[/\\][^/\\]+$", "")
+      project_tree = flags["project-tree"]:gsub("[/\\][^/\\]+$", "")
    end
 
-   local lua_data
+   local detected
    if flags["lua-dir"] then
       local err
-      lua_data, err = cmd.find_lua(flags["lua-dir"], flags["lua-version"])
-      if not lua_data then
+      detected, err = cmd.find_lua(flags["lua-dir"], flags["lua-version"])
+      if not detected then
          die(err)
       end
+      assert(detected.lua_version)
+      assert(detected.lua_dir)
    elseif flags["lua-version"] then
       local path_sep = (package.config:sub(1, 1) == "\\" and ";" or ":")
       for bindir in os.getenv("PATH"):gmatch("[^"..path_sep.."]+") do
          local parentdir = bindir:gsub("[\\/][^\\/]+[\\/]?$", "")
-         lua_data = cmd.find_lua(dir.path(parentdir), flags["lua-version"])
-         if lua_data then
+         detected = cmd.find_lua(dir.path(parentdir), flags["lua-version"])
+         if detected then
             break
          end
-         lua_data = cmd.find_lua(bindir, flags["lua-version"])
-         if lua_data then
+         detected = cmd.find_lua(bindir, flags["lua-version"])
+         if detected then
             break
          end
       end
-      if not lua_data then
+      if not detected then
          util.warning("Could not find a Lua interpreter for version " ..
                       flags["lua-version"] .. " in your PATH. " ..
                       "Modules may not install with the correct configurations. " ..
                       "You may want to specify to the path prefix to your build " ..
                       "of Lua " .. flags["lua-version"] .. " using --lua-dir")
-         lua_data = {
+         detected = {
             lua_version = flags["lua-version"],
          }
       end
-   else
-      if not project_dir then
-         project_dir = find_project_dir()
-      end
-      if project_dir then
-         lua_data = find_lua_version_at(project_dir)
-      end
    end
+
+   detected = check_project_dir(detected, project_tree)
 
    -- FIXME A quick hack for the experimental Windows build
    if os.getenv("LUAROCKS_CROSS_COMPILING") then
@@ -433,7 +445,7 @@ function cmd.run_command(description, commands, external_namespace, ...)
    end
 
    -----------------------------------------------------------------------------
-   local ok, err = cfg.init(lua_data, project_dir, util.warning)
+   local ok, err = cfg.init(detected, util.warning)
    if not ok then
       die(err)
    end
@@ -441,8 +453,8 @@ function cmd.run_command(description, commands, external_namespace, ...)
 
    fs.init()
    
-   if project_dir then
-      project_dir = fs.absolute_name(project_dir)
+   if detected.project_dir then
+      detected.project_dir = fs.absolute_name(detected.project_dir)
    end
 
    if flags["version"] then
@@ -467,7 +479,7 @@ function cmd.run_command(description, commands, external_namespace, ...)
       die("Current directory does not exist. Please run LuaRocks from an existing directory.")
    end
 
-   ok, err = process_tree_flags(flags, project_dir)
+   ok, err = process_tree_flags(flags, detected.project_dir)
    if not ok then
       die(err)
    end
