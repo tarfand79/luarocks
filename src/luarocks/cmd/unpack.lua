@@ -126,9 +126,9 @@ local function run_unpacker(file, force)
    end
    if kind == "src" or kind == "rockspec" then
       if rockspec.source.dir ~= "." then
-         local ok = fs.copy(rockspec.local_abs_filename, rockspec.source.dir, "read")
+         local ok, err = fs.copy(rockspec.local_abs_filename, rockspec.source.dir, "read")
          if not ok then
-            return nil, "Failed copying unpacked rockspec into unpacked source directory."
+            return nil, "Failed copying unpacked rockspec into unpacked source directory: " .. err
          end
       end
       util.printout()   

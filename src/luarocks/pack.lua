@@ -42,7 +42,10 @@ function pack.pack_source_rock(rockspec_file)
    if not ok then return nil, err end
 
    fs.delete(rock_file)
-   fs.copy(rockspec_file, source_dir, "read")
+   ok, err = fs.copy(rockspec_file, source_dir, "read")
+   if not ok then
+      return nil, err
+   end
    ok, err = fs.zip(rock_file, dir.base_name(rockspec_file), dir.base_name(source_file))
    if not ok then
       return nil, "Failed packing "..rock_file.." - "..err
@@ -63,10 +66,14 @@ local function copy_back_files(name, version, file_tree, deploy_dir, pack_dir, p
          if not ok then return nil, err end
       else
          local versioned = path.versioned_name(source, deploy_dir, name, version)
+         local ok, err
          if fs.exists(versioned) then
-            fs.copy(versioned, target, perms)
+            ok, err = fs.copy(versioned, target, perms)
          else
-            fs.copy(source, target, perms)
+            ok, err = fs.copy(source, target, perms)
+         end
+         if not ok then
+            return nil, err
          end
       end
    end
@@ -98,7 +105,8 @@ function pack.pack_installed_rock(query, tree)
    local rock_file = fs.absolute_name(name_version .. "."..cfg.arch..".rock")
    
    local temp_dir = fs.make_temp_dir("pack")
-   fs.copy_contents(prefix, temp_dir)
+   local ok, err = fs.copy_contents(prefix, temp_dir)
+   if not ok then return nil, err end
 
    local is_binary = false
    if rock_manifest.lib then

@@ -363,45 +363,65 @@ end
 
 --- Copy a file.
 -- @param src string: Pathname of source
--- @param dest string: Pathname of destination
+-- @param dst string: Pathname of destination
 -- @param perms string ("read" or "exec") or nil: Permissions for destination
 -- file or nil to use the source file permissions
 -- @return boolean or (boolean, string): true on success, false on failure,
 -- plus an error message.
-function fs_lua.copy(src, dest, perms)
-   assert(src and dest)
+function fs_lua.copy(src, dst, perms)
+   assert(src and dst)
+
    src = dir.normalize(src)
-   dest = dir.normalize(dest)
-   local destmode = lfs.attributes(dest, "mode")
-   if destmode == "directory" then
-      dest = dir.path(dest, dir.base_name(src))
+   dst = dir.normalize(dst)
+
+   local function normalize_and_inode(name)
+      name = dir.normalize(name)
+      local ino, err = lfs.attributes(name, "ino")
+      if not ino then
+         return nil, "failed copying "..src.." to "..dst..": failed reading attributes of "..name..": " ..err
+      end
+      return name, ino
    end
-   if src == dest or (cfg.is_platform("unix") and lfs.attributes(src, "ino") == lfs.attributes(dest, "ino")) then
-      return nil, "The source and destination are the same files"
+
+   local src_ino, dst_ino
+   src, src_ino = normalize_and_inode(src)
+   if not src then return false, src_ino end
+   dst, dst_ino = normalize_and_inode(dst)
+   if not dst then return false, dst_ino end
+   if src == dst or (cfg.is_platform("unix") and src_ino == dst_ino) then
+      return nil, "failed copying "..src.." to "..dst..": source and destination are the same file"
    end
+
    local src_h, err = io.open(src, "rb")
    if not src_h then return nil, err end
-   local dest_h, err = io.open(dest, "w+b")
-   if not dest_h then src_h:close() return nil, err end
+   local dst_h, err = io.open(dst, "w+b")
+   if not dst_h then src_h:close() return nil, err end
    while true do
       local block = src_h:read(8192)
       if not block then break end
-      dest_h:write(block)
+      local ok, err = dst_h:write(block)
+      if not ok then
+         return nil, "failed copying "..src.." to "..dst..": error writing "..dst..": " .. err
+      end      
    end
    src_h:close()
-   dest_h:close()
+   dst_h:close()
 
    local fullattrs
    if not perms then
       fullattrs = lfs.attributes(src, "permissions")
    end
+   local ok, err
    if fullattrs and posix_ok then
-      return posix.chmod(dest, fullattrs)
+      ok, err = posix.chmod(dst, fullattrs)
    else
-      if not perms then
-         perms = fullattrs:match("x") and "exec" or "read"
-      end
-      return fs.set_permissions(dest, perms, "all")
+      perms = perms or (fullattrs:match("x") and "exec" or "read")
+      ok, err = fs.set_permissions(dst, perms, "all")
+   end
+   if ok then
+      return true
+   else
+      return nil, "failed copying "..src.." to "..dst..": failed setting permissions of "..dst
    end
 end
 
@@ -416,19 +436,20 @@ local function recursive_copy(src, dest, perms)
    local srcmode = lfs.attributes(src, "mode")
 
    if srcmode == "file" then
-      local ok = fs.copy(src, dest, perms)
-      if not ok then return false end
+      local ok, err = fs.copy(src, dest, perms)
+      if not ok then return false, err end
    elseif srcmode == "directory" then
       local subdir = dir.path(dest, dir.base_name(src))
       local ok, err = fs.make_dir(subdir)
       if not ok then return nil, err end
       if pcall(lfs.dir, src) == false then
-         return false
+         return false, "failed reading directory " .. src
       end
       for file in lfs.dir(src) do
          if file ~= "." and file ~= ".." then
-            local ok = recursive_copy(dir.path(src, file), subdir, perms)
-            if not ok then return false end
+            local src_file = dir.path(src, file)
+            local ok = recursive_copy(src_file, subdir, perms)
+            if not ok then return false, "failed copying " .. src_file end
          end
       end
    end
@@ -453,9 +474,9 @@ function fs_lua.copy_contents(src, dest, perms)
    end
    for file in lfs.dir(src) do
       if file ~= "." and file ~= ".." then
-         local ok = recursive_copy(dir.path(src, file), dest, perms)
+         local ok, err = recursive_copy(dir.path(src, file), dest, perms)
          if not ok then
-            return false, "Failed copying "..src.." to "..dest
+            return false, "Failed copying "..src.." to "..dest..": " .. err
          end
       end
    end

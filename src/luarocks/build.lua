@@ -261,10 +261,8 @@ do
             local ok, err = fs.make_dir(dest)
             if not ok then return nil, err end
          end
-         local ok = fs.copy(dir.path(file), dir.path(dest, filename), perms)
-         if not ok then
-            return nil, "Failed copying "..file
-         end
+         local ok, err = fs.copy(dir.path(file), dir.path(dest, filename), perms)
+         if not ok then return nil, err end
       end
       return true
    end
@@ -280,7 +278,8 @@ do
                   fs.make_dir(dest)
                   has_dir = true
                end
-               fs.copy(file, dest, "read")
+               local ok, err = fs.copy(file, dest, "read")
+               if not ok then return nil, err end
                break
             end
          end
@@ -309,7 +308,10 @@ do
          if fs.is_dir(copy_dir) then
             local dest = dir.path(path.install_dir(name, version), copy_dir)
             fs.make_dir(dest)
-            fs.copy_contents(copy_dir, dest)
+            local ok, err = fs.copy_contents(copy_dir, dest)
+            if not ok then
+               return nil, err
+            end
             any_docs = true
          else
             if not copying_default then
@@ -328,7 +330,8 @@ end
 local function write_rock_dir_files(rockspec, opts)
    local name, version = rockspec.name, rockspec.version
 
-   fs.copy(rockspec.local_abs_filename, path.rockspec_file(name, version), "read")
+   local ok, err = fs.copy(rockspec.local_abs_filename, path.rockspec_file(name, version), "read")
+   if not ok then return nil, err end
 
    local ok, err = writer.make_rock_manifest(name, version)
    if not ok then return nil, err end

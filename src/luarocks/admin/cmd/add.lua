@@ -62,7 +62,8 @@ local function add_files_to_server(refresh, rockfiles, server, upload_server, do
       if fs.exists(rockfile) then
          util.printout("Copying file "..rockfile.." to "..local_cache.."...")
          local absolute = fs.absolute_name(rockfile)
-         fs.copy(absolute, local_cache, "read")
+         local ok, err = fs.copy(absolute, local_cache, "read")
+         if not ok then return nil, err end
          table.insert(files, dir.base_name(absolute))
       else
          util.printerr("File "..rockfile.." not found")
