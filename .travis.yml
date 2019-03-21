@@ -4,11 +4,9 @@ cache:
   directories:
   - lua_install
   - testrun/testing_cache-5.1
-  - testrun/testing_cache-5.2
   - testrun/testing_cache-5.3
   - testrun/testing_cache-2.1
   - testrun/testing_server-5.1
-  - testrun/testing_server-5.2
   - testrun/testing_server-5.3
   - testrun/testing_server-2.1
   - testrun/binary-samples
@@ -27,94 +25,58 @@ integration_script: &integration_script
           
 jobs:
   include:
-    # Unit tests for linux
-    - stage: unit
-      script: *unit_script
+    # Linux
+    - script: *unit_script
       os: linux
       env:
         - LUA="lua=5.1"
-    - stage: unit
-      script: *unit_script
+    - script: *integration_script
       os: linux
       env:
-        - LUA="lua=5.2"
-    - stage: unit
-      script: *unit_script
+        - LUA="lua=5.1"
+    - script: *unit_script
       os: linux
       env:
         - LUA="lua=5.3"
-    - stage: unit
-      script: *unit_script
+    - script: *integration_script
+      os: linux
+      env:
+        - LUA="lua=5.3"
+    - script: *unit_script
       os: linux
       env:
         - LUA="luajit=2.1"
-    # Unit tests for osx
-    - stage: unit
-      script: *unit_script
+    - script: *integration_script
+      os: linux
+      env:
+        - LUA="luajit=2.1"
+    # macOS
+    - script: *unit_script
       os: osx
       env:
         - LUA="lua=5.1"
       language: generic
-    - stage: unit
-      script: *unit_script
+    - script: *integration_script
       os: osx
       env:
-        - LUA="lua=5.2"
+        - LUA="lua=5.1"
       language: generic
-    - stage: unit
-      script: *unit_script
+    - script: *unit_script
       os: osx
       env:
         - LUA="lua=5.3"
       language: generic
-    - stage: unit
-      script: *unit_script
+    - script: *integration_script
+      os: osx
+      env:
+        - LUA="lua=5.3"
+      language: generic
+    - script: *unit_script
       os: osx
       env:
         - LUA="luajit=2.1"
       language: generic
-    # Integration tests for linux
-    - stage: integration
-      script: *integration_script
-      os: linux
-      env:
-        - LUA="lua=5.1"
-    - stage: integration
-      script: *integration_script
-      os: linux
-      env:
-        - LUA="lua=5.2"
-    - stage: integration
-      script: *integration_script
-      os: linux
-      env:
-        - LUA="lua=5.3"
-    - stage: integration
-      script: *integration_script
-      os: linux
-      env:
-        - LUA="luajit=2.1"
-    # Integration tests for osx
-    - stage: integration
-      script: *integration_script
-      os: osx
-      env:
-        - LUA="lua=5.1"
-      language: generic
-    - stage: integration
-      script: *integration_script
-      os: osx
-      env:
-        - LUA="lua=5.2"
-      language: generic
-    - stage: integration
-      script: *integration_script
-      os: osx
-      env:
-        - LUA="lua=5.3"
-      language: generic
-    - stage: integration
-      script: *integration_script
+    - script: *integration_script
       os: osx
       env:
         - LUA="luajit=2.1"
