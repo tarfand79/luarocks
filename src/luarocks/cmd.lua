@@ -153,16 +153,25 @@ end
 
 local function check_if_config_is_present(detected, try)
    if detected.lua_version then
+print("LUA VERSION EXISTS ", try .. "/.luarocks/config-" .. detected.lua_version .. ".lua ??")
       if exists(try .. "/.luarocks/config-" .. detected.lua_version .. ".lua") then
+print("YES EXISTS")
          detected.project_dir = try
          return detected
+      else
+print("OH NO")
       end
    else
+print("NO LUA VERSION")
       for v in util.lua_versions("descending") do
+print("LETS TRY " .. dir.path(try, ".luarocks", "config-"..v..".lua"))
          if exists(dir.path(try, ".luarocks", "config-"..v..".lua")) then
             detected.project_dir = try
             detected.lua_version = v
+print("YES!")
             return detected
+         else
+print("NO!")
          end
       end
    end
@@ -406,6 +415,7 @@ function cmd.run_command(description, commands, external_namespace, ...)
       detected = detected or {
          project_dir = project_tree
       }
+print("PROJECT TREE ", project_tree)
       local d = check_if_config_is_present(detected, project_tree)
       if d then
          detected = d
@@ -416,9 +426,13 @@ function cmd.run_command(description, commands, external_namespace, ...)
       detected = detected or {}
       local try = "."
       for _ = 1, 10 do -- FIXME detect when root dir was hit instead
+print("EXISTS ", try .. "/.luarocks ?")
+print("EXISTS ", try .. "/lua_modules ?")
          if exists(try .. "/.luarocks") and exists(try .. "/lua_modules") then
+print("YES EXISTS")
             local d = check_if_config_is_present(detected, try)
             if d then
+print("DETECTEDDDD")
                detected = d
                break
             end
@@ -456,7 +470,9 @@ end
 
    fs.init()
 
-print("DETECTED AFTER CFG INIT ", require'inspect'(detected))
+if pok then
+   print("DETECTED AFTER CFG INIT ", require'inspect'(detected))
+end
 
    if detected.project_dir then
       detected.project_dir = fs.absolute_name(detected.project_dir)
