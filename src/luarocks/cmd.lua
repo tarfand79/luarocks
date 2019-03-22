@@ -151,7 +151,7 @@ local function check_popen()
    end
 end
 
-local function check_dir(detected, try)
+local function check_if_config_is_present(detected, try)
    if detected.lua_version then
       if exists(try .. "/.luarocks/config-" .. detected.lua_version .. ".lua") then
          detected.project_dir = try
@@ -166,29 +166,6 @@ local function check_dir(detected, try)
          end
       end
    end
-end
-
-local function check_project_dir(detected, project_tree)
-   detected = detected or {
-      project_dir = project_tree
-   }
-   if detected.project_dir then
-      return check_dir(detected, detected.project_dir)
-   end
-
-   local try = "."
-   for _ = 1, 10 do -- FIXME detect when root dir was hit instead
-      if exists(try .. "/.luarocks") and exists(try .. "/lua_modules") then
-         local d = check_dir(detected, try)
-         if d then
-            return d
-         end
-      elseif exists(try .. "/.luarocks-no-project") then
-         break
-      end
-      try = try .. "/.."
-   end
-   return detected
 end
 
 local process_tree_flags
@@ -390,11 +367,6 @@ function cmd.run_command(description, commands, external_namespace, ...)
       die("Invalid entry for --deps-mode.")
    end
 
-   local project_tree
-   if flags["project-tree"] then
-      project_tree = flags["project-tree"]:gsub("[/\\][^/\\]+$", "")
-   end
-
    local detected
    if flags["lua-dir"] then
       local err
@@ -429,7 +401,33 @@ function cmd.run_command(description, commands, external_namespace, ...)
       end
    end
 
-   detected = check_project_dir(detected, project_tree)
+   if flags["project-tree"] then
+      local project_tree = flags["project-tree"]:gsub("[/\\][^/\\]+$", "")
+      detected = detected or {
+         project_dir = project_tree
+      }
+      local d = check_if_config_is_present(detected, project_tree)
+      if d then
+         detected = d
+      else
+         detected.project_dir = nil
+      end
+   else
+      detected = detected or {}
+      local try = "."
+      for _ = 1, 10 do -- FIXME detect when root dir was hit instead
+         if exists(try .. "/.luarocks") and exists(try .. "/lua_modules") then
+            local d = check_if_config_is_present(detected, try)
+            if d then
+               detected = d
+               break
+            end
+         elseif exists(try .. "/.luarocks-no-project") then
+            break
+         end
+         try = try .. "/.."
+      end
+   end
 
    -- FIXME A quick hack for the experimental Windows build
    if os.getenv("LUAROCKS_CROSS_COMPILING") then
