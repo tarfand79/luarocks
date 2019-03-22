@@ -83,13 +83,13 @@ init:
 
 before_build:
   - set PATH=C:\Python27\Scripts;%PATH% # Add directory containing 'pip' to PATH
-  - pip install hererocks
-  - hererocks lua_install-%LUAV% --%LUAT% %LUAV% --luarocks latest --target=%COMPILER%
+  - IF NOT EXIST lua_install-%LUAV%\bin\activate.bat ( pip install hererocks )
+  - IF NOT EXIST lua_install-%LUAV%\bin\activate.bat ( hererocks lua_install-%LUAV% --%LUAT% %LUAV% --luarocks latest --target=%COMPILER% )
   - call lua_install-%LUAV%\bin\activate
 
 build_script:
-  - luarocks install busted 1> NUL 2> NUL
-  - luarocks install cluacov 1> NUL 2> NUL
+  - IF NOT EXIST lua_install-%LUAV%\bin\busted.bat ( luarocks install busted 1> NUL 2> NUL )
+  - IF NOT EXIST lua_install-%LUAV%\bin\luacov.bat ( luarocks install cluacov 1> NUL 2> NUL )
 
 test_script:
   - busted -o gtest -v --lpath=.//?.lua --exclude-tags=ssh,unix,%EXCLUDE% --filter=autodetect -Xhelper lua_dir=%CD%\lua_install-%LUAV%,appveyor,%COMPILER% %FILES%
