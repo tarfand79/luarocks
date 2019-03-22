@@ -426,6 +426,7 @@ print("PROJECT TREE ", project_tree)
       detected = detected or {}
       local try = "."
       for _ = 1, 10 do -- FIXME detect when root dir was hit instead
+os.execute("dir " .. try:gsub("/", "\\"))
 print("EXISTS ", try .. "/.luarocks ?")
 print("EXISTS ", try .. "/lua_modules ?")
          if exists(try .. "/.luarocks") and exists(try .. "/lua_modules") then
