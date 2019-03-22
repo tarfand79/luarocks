@@ -443,7 +443,7 @@ function cmd.run_command(description, commands, external_namespace, ...)
    end
 
 local pok, inspect = pcall(require, 'inspect')
-if inspect then
+if pok then
    print("DETECTED ", inspect(detected))
 end
 
