@@ -442,6 +442,11 @@ function cmd.run_command(description, commands, external_namespace, ...)
       fs.init()
    end
 
+local pok, inspect = pcall(require, 'inspect')
+if inspect then
+   print("DETECTED ", inspect(detected))
+end
+
    -----------------------------------------------------------------------------
    local ok, err = cfg.init(detected, util.warning)
    if not ok then
@@ -450,7 +455,9 @@ function cmd.run_command(description, commands, external_namespace, ...)
    -----------------------------------------------------------------------------
 
    fs.init()
-   
+
+print("DETECTED AFTER CFG INIT ", require'inspect'(detected))
+
    if detected.project_dir then
       detected.project_dir = fs.absolute_name(detected.project_dir)
    end
@@ -508,6 +515,13 @@ function cmd.run_command(description, commands, external_namespace, ...)
       cfg.local_cache = fs.make_temp_dir("local_cache")
       util.schedule_function(fs.delete, cfg.local_cache)
    end
+
+print("TREE ", cfg.rocks_tree)
+
+local a, b, c = cfg.package_paths()
+print("PATH   ", a)
+print("CPATH  ", b)
+print("BIN    ", c)
 
    if commands[command] then
       local cmd_mod = require(commands[command])
